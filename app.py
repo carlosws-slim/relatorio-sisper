@@ -23,5 +23,7 @@ def upload():
         else:
             return "Por favor, envie um arquivo .xlsx válido."
     return render_template("index.html")
-app.run(host="0.0.0.0", port=10000)
+import os
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
 
