@@ -1,36 +1,45 @@
-from flask import Flask, request, render_template
 import os
-from datetime import datetime
+from flask import Flask, request, render_template, redirect, url_for
 import pandas as pd
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'xlsx'}
 
 app = Flask(__name__)
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route("/", methods=["GET", "POST"])
-def upload():
-    if request.method == "POST":
-        if 'arquivo' not in request.files:
-            return "Nenhum arquivo enviado."
-        file = request.files['arquivo']
-        if file.filename == '':
-            return "Nome de arquivo vazio."
-        if file and file.filename.endswith('.xlsx'):
-            data_str = datetime.today().strftime('%Y-%m-%d')
-            filename = f"{data_str}_{file.filename}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
-            # Lê a planilha
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return 'Nenhum arquivo foi enviado.'
+    file = request.files['file']
+    if file.filename == '':
+        return 'Nenhum arquivo selecionado.'
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        try:
             df = pd.read_excel(filepath)
+            preview_html = df.head().to_html(classes="table table-striped", index=False)
+            return render_template("preview.html", preview_html=preview_html)
+        except Exception as e:
+            return f"Erro ao processar o arquivo: {str(e)}"
 
-            # Converte para HTML e exibe na nova página
-            table_html = df.to_html(classes="table table-striped", index=False)
-            return render_template("preview.html", table=table_html)
-        else:
-            return "Por favor, envie um arquivo .xlsx válido."
-    return render_template("index.html")
+    return 'Tipo de arquivo não permitido.'
 
-# Roda localmente ou no Render
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    app.run(debug=True)
