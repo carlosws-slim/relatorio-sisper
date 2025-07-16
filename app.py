@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, Markup
 import os
 from datetime import datetime
 import pandas as pd
@@ -11,41 +11,24 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def upload():
     if request.method == "POST":
         if 'arquivo' not in request.files:
-            return "Nenhum arquivo enviado."
+            return render_template("index.html", mensagem="Nenhum arquivo enviado.")
         file = request.files['arquivo']
         if file.filename == '':
-            return "Nome de arquivo vazio."
+            return render_template("index.html", mensagem="Nome de arquivo vazio.")
         if file and file.filename.endswith('.xlsx'):
             data_str = datetime.today().strftime('%Y-%m-%d')
             filename = f"{data_str}_{file.filename}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
 
-            # Processar o arquivo depois do upload
-            resumo = processar_relatorio(filepath)
-            return f"Relatório recebido com sucesso!<br><br>{resumo}"
+            # Lê o arquivo Excel com pandas
+            try:
+                df = pd.read_excel(filepath)
+                tabela_html = df.to_html(classes="table table-bordered", index=False, border=0)
+                tabela_html = Markup(tabela_html)  # Permite HTML ser renderizado no template
+                return render_template("index.html", mensagem="Relatório recebido com sucesso!", tabela=tabela_html)
+            except Exception as e:
+                return render_template("index.html", mensagem=f"Erro ao ler o Excel: {e}")
         else:
-            return "Por favor, envie um arquivo .xlsx válido."
+            return render_template("index.html", mensagem="Por favor, envie um arquivo .xlsx válido.")
     return render_template("index.html")
-
-def processar_relatorio(caminho):
-    try:
-        df = pd.read_excel(caminho, skiprows=1)
-        df = df.dropna(how='all')  # remove linhas totalmente vazias
-        if 'DATA' not in df.columns or 'ATENDIDO POR - MÉDICO' not in df.columns:
-            return "Arquivo enviado não possui colunas esperadas."
-
-        df_today = df[df['DATA'] == pd.to_datetime(datetime.today().date())]
-        total = len(df_today)
-
-        resumo = f"Total de atendimentos hoje: <strong>{total}</strong><br>"
-        if total > 0:
-            por_medico = df_today['ATENDIDO POR - MÉDICO'].value_counts()
-            for medico, qtde in por_medico.items():
-                resumo += f"- {medico}: {qtde} paciente(s)<br>"
-        return resumo
-    except Exception as e:
-        return f"Erro ao processar o relatório: {str(e)}"
-
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
