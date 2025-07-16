@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template
 import os
 from datetime import datetime
 import pandas as pd
@@ -21,17 +21,16 @@ def upload():
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
 
-            # Processa o arquivo
+            # Lê a planilha
             df = pd.read_excel(filepath)
-            # Pega as 10 primeiras linhas para mostrar na tela
-            preview_html = df.head(10).to_html(classes="table table-striped", index=False)
 
-            return render_template("preview.html", tabela=preview_html)
+            # Converte para HTML e exibe na nova página
+            table_html = df.to_html(classes="table table-striped", index=False)
+            return render_template("preview.html", table=table_html)
         else:
             return "Por favor, envie um arquivo .xlsx válido."
     return render_template("index.html")
 
-# Configuração para rodar na Render
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+# Roda localmente ou no Render
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
