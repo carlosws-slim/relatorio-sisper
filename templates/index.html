@@ -1,15 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Envio de Relatório SisPer</title>
-</head>
-<body>
-    <h2>Envio Diário de Relatório SisPer</h2>
-    <form method="post" enctype="multipart/form-data">
-        <label>Selecione o arquivo (.xlsx):</label><br><br>
-        <input type="file" name="arquivo" required><br><br>
-        <input type="submit" value="Enviar">
+  <head>
+    <meta charset="utf-8">
+    <title>Upload de Relatório</title>
+    <style>
+      body { font-family: Arial; margin: 40px; }
+      .mensagem { margin-top: 20px; color: green; font-weight: bold; }
+      table { border-collapse: collapse; width: 100%; margin-top: 30px; }
+      th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+      th { background-color: #eee; }
+    </style>
+  </head>
+  <body>
+    <h1>Envio de Relatório SisPer</h1>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="file" name="arquivo" accept=".xlsx" required>
+      <button type="submit">Enviar</button>
     </form>
-</body>
+    {% if mensagem %}
+      <div class="mensagem">{{ mensagem }}</div>
+    {% endif %}
+    {% if tabela %}
+      <h2>Visualização do Relatório</h2>
+      {{ tabela|safe }}
+    {% endif %}
+  </body>
 </html>
