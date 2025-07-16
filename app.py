@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, Markup
+from flask import Flask, request, render_template, redirect, url_for
 import os
 from datetime import datetime
 import pandas as pd
@@ -11,24 +11,27 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def upload():
     if request.method == "POST":
         if 'arquivo' not in request.files:
-            return render_template("index.html", mensagem="Nenhum arquivo enviado.")
+            return "Nenhum arquivo enviado."
         file = request.files['arquivo']
         if file.filename == '':
-            return render_template("index.html", mensagem="Nome de arquivo vazio.")
+            return "Nome de arquivo vazio."
         if file and file.filename.endswith('.xlsx'):
             data_str = datetime.today().strftime('%Y-%m-%d')
             filename = f"{data_str}_{file.filename}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
 
-            # Lê o arquivo Excel com pandas
-            try:
-                df = pd.read_excel(filepath)
-                tabela_html = df.to_html(classes="table table-bordered", index=False, border=0)
-                tabela_html = Markup(tabela_html)  # Permite HTML ser renderizado no template
-                return render_template("index.html", mensagem="Relatório recebido com sucesso!", tabela=tabela_html)
-            except Exception as e:
-                return render_template("index.html", mensagem=f"Erro ao ler o Excel: {e}")
+            # Processa o arquivo
+            df = pd.read_excel(filepath)
+            # Pega as 10 primeiras linhas para mostrar na tela
+            preview_html = df.head(10).to_html(classes="table table-striped", index=False)
+
+            return render_template("preview.html", tabela=preview_html)
         else:
-            return render_template("index.html", mensagem="Por favor, envie um arquivo .xlsx válido.")
+            return "Por favor, envie um arquivo .xlsx válido."
     return render_template("index.html")
+
+# Configuração para rodar na Render
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
